@@ -242,7 +242,7 @@ glimpse(final_chemical_data, 1)
 
 The following analysis focuses on examining this chemical data and identifying significant trends and concerns.
 
-## 6.2 Overview of the Chemicals Data
+### 6.1.1 Overview of the Chemicals Data
 
 We will first explore some general characteristics of the chemicals used in the strawberry data, focusing on key fields like `use`, `name`, and `code`.
 
@@ -267,7 +267,7 @@ ggplot(chemical_summary, aes(x = use, y = count, fill = use)) +
   scale_fill_brewer(palette = "Set2")
 ```
 
-## 6.3 Chemical Usage in Different States
+### 6.1.2 Chemical Usage in Different States
 
 We can also examine the usage of different chemicals across various states. Analyzing chemical usage across different states allows us to understand regional variations in farming practices and the specific chemicals preferred in certain areas. Factors such as climate, soil type, local pest populations, and agricultural policies can all influence the choice of chemicals used by farmers. For instance, warmer states might rely more heavily on insecticides due to higher pest pressures, while cooler or wetter states might see more use of fungicides to combat fungal diseases. Understanding these regional differences is essential for developing targeted strategies that promote sustainable farming practices while addressing local agricultural challenges.
 
@@ -293,7 +293,7 @@ strawberry %>%
   count()                  
 ```
 
-## 6.4 Top 10 Most Common Chemicals Used
+### 6.1.3 Top 10 Most Common Chemicals Used
 
 ```{r}
 # Find the top 10 most common chemical names
@@ -320,7 +320,7 @@ This bar plot visualizes the **top 10 most frequently used chemicals** in the da
 
 Each chemical's usage in this analysis suggests its importance or prevalence in strawberry production. The consistent frequency among these key chemicals, except for `TOTAL`, may indicate that certain pesticides or fungicides are favored across different farms and conditions, possibly due to their effectiveness or regulation.
 
-## 6.5 Yearly Trends in Chemical Application
+### 6.1.4 Yearly Trends in Chemical Application
 
 ```{r}
 # Summarize the chemical application by year
@@ -351,19 +351,7 @@ The line plot above visualizes the **yearly trends in chemical applications** in
 
 The observed dip in chemical applications from 2019 to 2021 could likely be attributed to the global disruptions caused by the COVID-19 pandemic. Supply chain issues, labor shortages, and financial constraints may have limited farmers' access to chemical inputs during this time. Additionally, the pandemic brought increased awareness of sustainability and health, potentially driving a shift toward reduced chemical usage in favor of organic or eco-friendly farming practices. The subsequent recovery in chemical applications by 2023 might reflect the normalization of supply chains and agricultural operations as the world adjusted to post-pandemic conditions.
 
-# 7. Strawberry Data Analysis
-
-This section aims to respond to key questions about strawberry farming, production, chemical use, and consumer choices. The analysis leverages data from the USDA to explore how and where strawberries are grown, the chemicals involved in production, and whether organic farming practices differ significantly from conventional methods.
-
-## 7.1 Where Are Strawberries Grown? By Whom?
-
-To begin, we need to identify the primary states and farms involved in strawberry production across the U.S. Understanding the geography of strawberry production can reveal key farming regions and production hubs.
-
-```{r}
-
-```
-
-## 7.2 Are They Really Loaded with Carcinogenic Poisons?
+## 6.2 Are They Really Loaded with Carcinogenic Poisons?
 
 A primary concern regarding strawberry production is the use of carcinogenic pesticides. We can identify whether strawberries are exposed to chemicals flagged by the WHO as carcinogenic (e.g., glyphosate, diazinon, malathion).
 
@@ -371,7 +359,7 @@ A primary concern regarding strawberry production is the use of carcinogenic pes
 
 ```
 
-## 7.3 Are They Really Good for Your Health? Bad for Your Health?
+## 6.3 Are They Really Good for Your Health? Bad for Your Health?
 
 Strawberries are generally known for their high vitamin C content and other nutrients. However, concerns arise regarding pesticide residues on non-organic strawberries. Here, we compare organic vs. conventional farming practices in relation to chemical use.
 
@@ -379,9 +367,7 @@ Strawberries are generally known for their high vitamin C content and other nutr
 
 ```
 
-### 
-
-## 7.4 Are Organic Strawberries Carriers of Deadly Diseases?
+## 6.4 Are Organic Strawberries Carriers of Deadly Diseases?
 
 There is often skepticism about the safety of organic produce due to the lack of synthetic pesticides. We can analyze if there are any reports or patterns of disease outbreaks tied to organic strawberry farming.
 
@@ -391,7 +377,23 @@ There is often skepticism about the safety of organic produce due to the lack of
 
 ### 
 
-## 7.5 Should You Buy Conventional or Organic Strawberries?
+# 7. Strawberry Data Analysis
+
+This section aims to respond to key questions about strawberry farming, production, chemical use, and consumer choices. The analysis leverages data from the USDA to explore how and where strawberries are grown, the chemicals involved in production, and whether organic farming practices differ significantly from conventional methods.
+
+## 7.1 Data Overview
+
+*Data overview here*
+
+## 7.2 Where Are Strawberries Grown? By Whom?
+
+To begin, we need to identify the primary states and farms involved in strawberry production across the U.S. Understanding the geography of strawberry production can reveal key farming regions and production hubs.
+
+```{r}
+
+```
+
+## 7.3 Should You Buy Conventional or Organic Strawberries?
 
 Given the difference in chemical use between conventional and organic strawberries, consumers must weigh the health benefits of organic produce against the higher costs typically associated with organic farming.
 
@@ -399,7 +401,7 @@ Given the difference in chemical use between conventional and organic strawberri
 
 ```
 
-## 7.6 Do Strawberry Farmers Make Money?
+## 7.4 Do Strawberry Farmers Make Money?
 
 Strawberry farming can be profitable, but it also depends on market prices, yield, and operational costs. We will analyze the total sales data to understand the economic impact of strawberry farming.
 
@@ -409,15 +411,13 @@ Strawberry farming can be profitable, but it also depends on market prices, yiel
 
 ### 
 
-## 7.7 How Do Strawberries Reach the Market?
+## 7.5 How Do Strawberries Reach the Market?
 
 Understanding the supply chain is important for assessing the environmental impact of strawberry farming. While our dataset does not explicitly track the supply chain, we can infer transportation and distribution trends based on production regions.
 
 ```{r}
 
 ```
-
-### 
 
 # Conclusion
 

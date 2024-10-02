@@ -1,56 +1,24 @@
 ---
-title: "Stawberries"
+title: "Stawberries 2"
 author: MA615
-date: 2024 Sept 25
+date: 2024 Sept 30
 format: html
 editor: visual
 ---
 
 # Preparing data for analysis
 
-## Introduction: foundations
-
-Before we begin to work with the strawberry data, let's talk about how we will approach the work.
+Acquire, explore, clean & structure, EDA
 
 ### Data cleaning and organization
 
-Cleaning and organizing data for analysis is an essential skill for data scientists. Serious data analyses must be presented with the data on which the results depend. The credibility of data analysis and modelling depends on the care taken in data preparation and organization.
+["An introduction to data cleaning with R" by Edwin de Jonge and Mark van der Loo](https://cran.r-project.org/doc/contrib/de_Jonge+van_der_Loo-Introduction_to_data_cleaning_with_R.pdf)
 
-#### References
+["Problems, Methods, and Challenges in Comprehensive Data Cleansing" by Heiko Müller and Johann-Christoph Freytag](https://www.researchgate.net/profile/Heiko-Mueller/publication/228929938_Problems_methods_and_challenges_in_comprehensive_data_cleansing/links/09e415101b58541e2c000000/Problems-methods-and-challenges-in-comprehensive-data-cleansing.pdf)
 
-In their handbook ["An introduction to data cleaning with R" by Edwin de Jonge and Mark van der Loo](https://cran.r-project.org/doc/contrib/de_Jonge+van_der_Loo-Introduction_to_data_cleaning_with_R.pdf), de Jonge and van der Loo go into detail about specific data cleaning isssues and how to handle them in R.
+## Strawberries
 
-["Problems, Methods, and Challenges in Comprehensive Data Cleansing" by Heiko Müller and Johann-Christoph Freytag](https://www.researchgate.net/profile/Heiko-Mueller/publication/228929938_Problems_methods_and_challenges_in_comprehensive_data_cleansing/links/09e415101b58541e2c000000/Problems-methods-and-challenges-in-comprehensive-data-cleansing.pdf) is a good companion to the de Jonge and van der Loo handbook, offering additional issues in their discussion.
-
-### Attitudes
-
-Mechanistic descriptions of data cleaning methods are insufficient.
-
-#### Data is the product (or by-product) of purposeful human activity
-
-Much of the data used in analysis accessed on local databases or online which may create the impression that the data have been carefully curated. Beware. Data are produced by people for a purpose, with a point-of-view, and at a time and location that may affect the data. The provenance and lineage of the data are meta data you should include when reporting analysis. Data collection is purposeful human activity with all of the risks and weaknesses that are part of any purposeful human activity.
-
-#### Data is language
-
-Data has meaning. Data can be included in sentences related to the meaning of the data. Cleaning and organizing data should be informed by the meaning the data convey and how that meaning relates to the research you are doing do achieve this important result.
-
--   Immerse yourself in the data. Put data into context.
-
--   Visualize the data to find problems, confirm your understandings, and plan your data organization. People do a bad job of seeing meaningful patterns in data but a good job of seeing patterns of all kinds when data are rendered as plots. As you product and show visualizations, ask your self and those who view your presentations, "what do you see?" and "what do you wonder?"
-
-## Example: Strawberries
-
-### Public information
-
-[WHO says strawberries may not be so safe for you--2017March16](https://med.news.am/eng/news/13621/who-says-strawberries-may-not-be-so-safe-for-you.html)
-
-[Pesticides + poison gases = cheap, year-round strawberries 2019March20](https://www.ewg.org/foodnews/strawberries.php)
-
-[Multistate Outbreak of Hepatitis A Virus Infections Linked to Fresh Organic Strawberries-2022March5](https://www.cdc.gov/hepatitis/outbreaks/fresh-strawberries-2022/?CDC_AAref_Val=https://www.cdc.gov/hepatitis/outbreaks/2022/hav-contaminated-food/index.htm)
-
-[Strawberry makes list of cancer-fighting foods-2023May31](https://issuu.com/mechlocal/docs/053123_mech_asf/s/25386339)
-
-## What is the question?
+**Questions**
 
 -   Where they are grown? By whom?
 
@@ -62,26 +30,36 @@ Data has meaning. Data can be included in sentences related to the meaning of th
 
 -   When I go to the market should I buy conventional or organic strawberries?
 
+-   Do Strawberry farmers make money?
+
+-   How do the strawberries I buy get to my market?
+
 ## The data
 
-The data set for this assignment has been selected from: \[[USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov) <br> The data have been stored on NASS here: [USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov/results/28141CE5-7429-36C3-A385-33ACC8030763)
+The data set for this assignment has been selected from:
+
+\[[USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov) The data have been stored on NASS here: [USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov/results/28141CE5-7429-36C3-A385-33ACC8030763)
 
 and has been stored on the blackboard as strawberries25_v3.csv.
 
-## USDA NASS
+## Read and explore the data
+
+Set-up
 
 ```{r}
-#| label: load libraries
+#| label: load libraries and set options
 #| warning: false
 #| message: false
+#| 
 
 library(knitr)  
 library(kableExtra)
 library(tidyverse)
-library(stringr)
+
+
 ```
 
-## Read the file
+Read the data and take a first look
 
 ```{r}
 #| label: read data - glimpse 
@@ -91,11 +69,17 @@ strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE)
 glimpse(strawberry)
 ```
 
+I have 12699 rows and 21 columns.
+
+All I can see from the glimpse is I have date, location, values and coefficients of variation.
+
 Examine the data. How is it organized?
 
 ```{r}
+#| label: explore organization 1 
 
-## is every line associated with a state?
+
+## Is every line associated with a state?
 
 state_all <- strawberry |> distinct(State)
 
@@ -103,36 +87,29 @@ state_all1 <- strawberry |> group_by(State) |> count()
 
 ## every row is associated with a state
 
-sum(state_all1$n) == dim(strawberry)[1]
+if(sum(state_all1$n) == dim(strawberry)[1]){print("Yes every row in the data is associated with a state.")}
 
-
-## to get an idea of the data -- looking at california only
-
-calif_census <- strawberry |> filter((State=="CALIFORNIA") & (Program=="CENSUS"))
-
-calif_census <- calif_census |> select(Year, `Data Item`, Value)
-
-### 
-
-calif_survey <- strawberry |> filter((State=="CALIFORNIA") & (Program=="SURVEY"))
-
-calif_survey <- strawberry |> select(Year, Period, `Data Item`, Value)
-
-
+## rm(state_all, state_all1)
 
 ```
 
-## remove columns with a single value in all columns
+## remove columns with a single value in all rows
 
 ```{r}
-#|label: drop 1-item columns
+#|label: function def - drop 1-item columns
 
-drop_one_value_col <- function(df){
-drop <- NULL
-for(i in 1:dim(df)[2]){
+drop_one_value_col <- function(df){   ## takes whole dataframe
+drop <- NULL  
+
+## test each column for a single value
+for(i in 1:dim(df)[2]){     
 if((df |> distinct(df[,i]) |> count()) == 1){
 drop = c(drop, i)
 } }
+
+## report the result -- names of columns dropped
+## consider using the column content for labels 
+## or headers 
 
 if(is.null(drop)){return("none")}else{
 
@@ -150,6 +127,62 @@ strawberry <- drop_one_value_col(strawberry)
 drop_one_value_col(strawberry)
 
 ```
+
+To get better look at the data, look at California.
+
+```{r}
+#| label: explore California only
+
+calif <- strawberry |>  filter(State=="CALIFORNIA")
+
+## look at the unique values in the "Program" column
+
+## in the consol
+## unique(calif$Program)
+
+## and look at the data selection widget on 
+##      https://quickstats.nass.usda.gov
+
+## You can see that CENSUS AND SURVEY are the two sources
+## of data. (Why? What's the differences?).  So, let's see
+## they differ.
+
+calif_census <- calif |> filter(Program=="CENSUS")
+
+calif_survey  <- calif |>  filter(Program=="SURVEY")
+
+### 
+
+
+##calif_survey <- strawberry |> select(Year, Period, `Data Item`, Value)
+
+
+```
+
+Explore California to understand the census and survey
+
+```{r}
+#| label: explore Calif census and survey 
+
+## no assignment -- just exploring
+
+drop_one_value_col(calif_census)
+
+drop_one_value_col(calif_survey)
+
+
+
+```
+
+Conclusions from California data exploration.
+
+## Now return to the entire data set.
+
+take the lessons learned by examining the California data
+
+Two strategies -- columns first, rows first
+
+Split the census data from the survey data. drop single value columns
 
 ## separate composite columns
 
@@ -233,8 +266,6 @@ nrow(strawberry) == (nrow(strw_b_chem) + nrow(strw_b_sales))
 
 ## Move marketing-related rows in strw_b_chem 
 ## to strw_b_sales
-
-
 
 
 ```

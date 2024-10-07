@@ -148,7 +148,14 @@ strw_prod_price <- strawberry |> slice(spr)
 strw_chem <- strawberry |> slice(-1*spr)  ## too soon
 ```
 
-# 5. Splitting Chemical Data
+## 4.4 Cleaning Area Grown Data
+
+```{r}
+
+
+```
+
+## 4.5 Cleaning (Splitting) Chemical Data
 
 In this step, our goal is to extract the chemical name, use, and code from the `Domain Category` column where applicable. The format of interest is:
 

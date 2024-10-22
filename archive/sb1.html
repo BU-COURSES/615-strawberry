@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Taha Ababou">
+<meta name="dcterms.date" content="2024-10-01">
+
+<title>MA615 Strawberries EDA</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="sb1_files/libs/clipboard/clipboard.min.js"></script>
+<script src="sb1_files/libs/quarto-html/quarto.js"></script>
+<script src="sb1_files/libs/quarto-html/popper.min.js"></script>
+<script src="sb1_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="sb1_files/libs/quarto-html/anchor.min.js"></script>
+<link href="sb1_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="sb1_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="sb1_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="sb1_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="sb1_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#data-cleaning" id="toc-data-cleaning" class="nav-link" data-scroll-target="#data-cleaning">1. Data Cleaning</a>
+  <ul class="collapse">
+  <li><a href="#remove-single-value-columns" id="toc-remove-single-value-columns" class="nav-link" data-scroll-target="#remove-single-value-columns">Remove Single-Value Columns</a></li>
+  </ul></li>
+  <li><a href="#explore-data-organization" id="toc-explore-data-organization" class="nav-link" data-scroll-target="#explore-data-organization">3. Explore Data Organization</a></li>
+  <li><a href="#data-cleaning-1" id="toc-data-cleaning-1" class="nav-link" data-scroll-target="#data-cleaning-1">4. Data Cleaning</a>
+  <ul class="collapse">
+  <li><a href="#explore-california-data" id="toc-explore-california-data" class="nav-link" data-scroll-target="#explore-california-data">4.1 Explore California Data</a></li>
+  <li><a href="#split-the-data-item-column" id="toc-split-the-data-item-column" class="nav-link" data-scroll-target="#split-the-data-item-column">4.2 Split the <code>Data Item</code> Column</a></li>
+  <li><a href="#exploring-fruit-column-finding-hidden-sub-columns" id="toc-exploring-fruit-column-finding-hidden-sub-columns" class="nav-link" data-scroll-target="#exploring-fruit-column-finding-hidden-sub-columns">4.3 Exploring Fruit Column (finding hidden sub-columns)</a></li>
+  <li><a href="#cleaning-area-grown-data" id="toc-cleaning-area-grown-data" class="nav-link" data-scroll-target="#cleaning-area-grown-data">4.4 Cleaning Area Grown Data</a></li>
+  <li><a href="#cleaning-splitting-chemical-data" id="toc-cleaning-splitting-chemical-data" class="nav-link" data-scroll-target="#cleaning-splitting-chemical-data">4.5 Cleaning (Splitting) Chemical Data</a></li>
+  </ul></li>
+  <li><a href="#chemical-data-analysis" id="toc-chemical-data-analysis" class="nav-link" data-scroll-target="#chemical-data-analysis">6. Chemical Data Analysis</a>
+  <ul class="collapse">
+  <li><a href="#data-overview" id="toc-data-overview" class="nav-link" data-scroll-target="#data-overview">6.1 Data Overview</a>
+  <ul class="collapse">
+  <li><a href="#overview-of-the-chemicals-data" id="toc-overview-of-the-chemicals-data" class="nav-link" data-scroll-target="#overview-of-the-chemicals-data">6.1.1 Overview of the Chemicals Data</a></li>
+  <li><a href="#chemical-usage-in-different-states" id="toc-chemical-usage-in-different-states" class="nav-link" data-scroll-target="#chemical-usage-in-different-states">6.1.2 Chemical Usage in Different States</a></li>
+  <li><a href="#top-10-most-common-chemicals-used" id="toc-top-10-most-common-chemicals-used" class="nav-link" data-scroll-target="#top-10-most-common-chemicals-used">6.1.3 Top 10 Most Common Chemicals Used</a></li>
+  <li><a href="#yearly-trends-in-chemical-application" id="toc-yearly-trends-in-chemical-application" class="nav-link" data-scroll-target="#yearly-trends-in-chemical-application">6.1.4 Yearly Trends in Chemical Application</a></li>
+  </ul></li>
+  <li><a href="#are-they-really-loaded-with-carcinogenic-poisons" id="toc-are-they-really-loaded-with-carcinogenic-poisons" class="nav-link" data-scroll-target="#are-they-really-loaded-with-carcinogenic-poisons">6.2 Are They Really Loaded with Carcinogenic Poisons?</a></li>
+  <li><a href="#are-they-really-good-for-your-health-bad-for-your-health" id="toc-are-they-really-good-for-your-health-bad-for-your-health" class="nav-link" data-scroll-target="#are-they-really-good-for-your-health-bad-for-your-health">6.3 Are They Really Good for Your Health? Bad for Your Health?</a></li>
+  <li><a href="#are-organic-strawberries-carriers-of-deadly-diseases" id="toc-are-organic-strawberries-carriers-of-deadly-diseases" class="nav-link" data-scroll-target="#are-organic-strawberries-carriers-of-deadly-diseases">6.4 Are Organic Strawberries Carriers of Deadly Diseases?</a>
+  <ul class="collapse">
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#strawberry-data-analysis" id="toc-strawberry-data-analysis" class="nav-link" data-scroll-target="#strawberry-data-analysis">7. Strawberry Data Analysis</a>
+  <ul class="collapse">
+  <li><a href="#data-overview-1" id="toc-data-overview-1" class="nav-link" data-scroll-target="#data-overview-1">7.1 Data Overview</a></li>
+  <li><a href="#where-are-strawberries-grown-by-whom" id="toc-where-are-strawberries-grown-by-whom" class="nav-link" data-scroll-target="#where-are-strawberries-grown-by-whom">7.2 Where Are Strawberries Grown? By Whom?</a></li>
+  <li><a href="#should-you-buy-conventional-or-organic-strawberries" id="toc-should-you-buy-conventional-or-organic-strawberries" class="nav-link" data-scroll-target="#should-you-buy-conventional-or-organic-strawberries">7.3 Should You Buy Conventional or Organic Strawberries?</a></li>
+  <li><a href="#do-strawberry-farmers-make-money" id="toc-do-strawberry-farmers-make-money" class="nav-link" data-scroll-target="#do-strawberry-farmers-make-money">7.4 Do Strawberry Farmers Make Money?</a>
+  <ul class="collapse">
+  <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1"></a></li>
+  </ul></li>
+  <li><a href="#how-do-strawberries-reach-the-market" id="toc-how-do-strawberries-reach-the-market" class="nav-link" data-scroll-target="#how-do-strawberries-reach-the-market">7.5 How Do Strawberries Reach the Market?</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">MA615 Strawberries EDA</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Taha Ababou </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 1, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>This document performs an exploratory data analysis (EDA) on the strawberries dataset. We clean the dataset, split the chemical data, and visualize key trends, such as strawberry production and pesticide use.</p>
+<p>By the end of this EDA Report, we will respond the following questions:</p>
+<p><strong>Strawberry EDA Questions</strong></p>
+<ol type="1">
+<li>Where they are grown? By whom?</li>
+<li>Are they really loaded with carcinogenic poisons?</li>
+<li>Are they really good for your health? Bad for your health?</li>
+<li>Are organic strawberries carriers of deadly diseases?</li>
+<li>When I go to the market should I buy conventional or organic strawberries?</li>
+<li>Do Strawberry farmers make money?</li>
+<li>How do the strawberries I buy get to my market?</li>
+</ol>
+</section>
+<section id="data-cleaning" class="level1">
+<h1>1. Data Cleaning</h1>
+<p>We begin by loading the dataset and exploring its structure.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>strawberry <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"strawberries25_v3.csv"</span>, <span class="at">col_names =</span> <span class="cn">TRUE</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span> )</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># glimpse(strawberry)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ditch the counties</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(strawberry<span class="sc">$</span><span class="st">`</span><span class="at">Geo Level</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "COUNTY"   "NATIONAL" "STATE"   </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>strawberry <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">Geo Level</span><span class="st">`</span><span class="sc">==</span> <span class="st">"NATIONAL"</span> <span class="sc">|</span> <span class="st">`</span><span class="at">Geo Level</span><span class="st">`</span><span class="sc">==</span> <span class="st">"STATE"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="remove-single-value-columns" class="level2">
+<h2 class="anchored" data-anchor-id="remove-single-value-columns">Remove Single-Value Columns</h2>
+<p>We now define a function to drop columns with a single unique value across all rows, as they don’t add useful information to the analysis.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to drop columns with a single unique value</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>drop_one_value_col <span class="ot">&lt;-</span> <span class="cf">function</span>(df){   </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  drop <span class="ot">&lt;-</span> <span class="cn">NULL</span>  </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">dim</span>(df)[<span class="dv">2</span>]){     </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>((df <span class="sc">|&gt;</span> <span class="fu">distinct</span>(df[,i]) <span class="sc">|&gt;</span> <span class="fu">count</span>()) <span class="sc">==</span> <span class="dv">1</span>){</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      drop <span class="ot">=</span> <span class="fu">c</span>(drop, i)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    } </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="do">## report the result -- names of columns dropped</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="do">## consider using the column content for labels </span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="do">## or headers </span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(drop)){<span class="fu">return</span>(<span class="st">"none"</span>)}<span class="cf">else</span>{</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="st">"Columns dropped:"</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">colnames</span>(df)[drop])</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    strawberry <span class="ot">&lt;-</span> df[, <span class="sc">-</span><span class="dv">1</span><span class="sc">*</span>drop]</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply the function to drop unnecessary columns</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>strawberry <span class="ot">&lt;-</span> <span class="fu">drop_one_value_col</span>(strawberry)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Columns dropped:"
+ [1] "Week Ending"      "Ag District"      "Ag District Code" "County"          
+ [5] "County ANSI"      "Zip Code"         "Region"           "watershed_code"  
+ [9] "Watershed"        "Commodity"       </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="explore-data-organization" class="level1">
+<h1>3. Explore Data Organization</h1>
+<p>At this point, we examine whether every row is associated with a specific state.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if every row is associated with a state</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>state_all <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> <span class="fu">distinct</span>(State)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>state_all1 <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> <span class="fu">group_by</span>(State) <span class="sc">|&gt;</span> <span class="fu">count</span>()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="fu">sum</span>(state_all1<span class="sc">$</span>n) <span class="sc">==</span> <span class="fu">dim</span>(strawberry)[<span class="dv">1</span>]){<span class="fu">print</span>(<span class="st">"Yes, every row in the data is associated with a state."</span>)}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Yes, every row in the data is associated with a state."</code></pre>
+</div>
+</div>
+</section>
+<section id="data-cleaning-1" class="level1">
+<h1>4. Data Cleaning</h1>
+<section id="explore-california-data" class="level2">
+<h2 class="anchored" data-anchor-id="explore-california-data">4.1 Explore California Data</h2>
+<p>To gain better insight into the data, we explore the entries for California and see the differences between <code>CENSUS</code> and <code>SURVEY</code> programs.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter California data</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>calif <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> <span class="fu">filter</span>(State <span class="sc">==</span> <span class="st">"CALIFORNIA"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Split data by 'Program' (CENSUS and SURVEY)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>calif_census <span class="ot">&lt;-</span> calif <span class="sc">|&gt;</span> <span class="fu">filter</span>(Program <span class="sc">==</span> <span class="st">"CENSUS"</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>calif_survey <span class="ot">&lt;-</span> calif <span class="sc">|&gt;</span> <span class="fu">filter</span>(Program <span class="sc">==</span> <span class="st">"SURVEY"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Drop single-value columns in California data</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">drop_one_value_col</span>(calif_census)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Columns dropped:"
+[1] "Program"    "Period"     "Geo Level"  "State"      "State ANSI"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">drop_one_value_col</span>(calif_survey)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Columns dropped:"
+[1] "Program"    "Geo Level"  "State"      "State ANSI" "CV (%)"    </code></pre>
+</div>
+</div>
+</section>
+<section id="split-the-data-item-column" class="level2">
+<h2 class="anchored" data-anchor-id="split-the-data-item-column">4.2 Split the <code>Data Item</code> Column</h2>
+<p>We now clean and split composite columns for better clarity. We start with the <code>Data Item</code> column, separating it into <code>Fruit</code>, <code>Category</code>, <code>Item</code>, and <code>Metric</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Split the 'Data Item' column into multiple columns</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>strawberry <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(<span class="at">cols =</span> <span class="st">`</span><span class="at">Data Item</span><span class="st">`</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">delim =</span> <span class="st">","</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">names =</span> <span class="fu">c</span>(<span class="st">"Fruit"</span>, <span class="st">"Category"</span>, <span class="st">"Item"</span>, <span class="st">"Metric"</span>),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">too_many =</span> <span class="st">"error"</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">too_few =</span> <span class="st">"align_start"</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Trim white spaces from the newly created columns</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>strawberry<span class="sc">$</span>Category <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(strawberry<span class="sc">$</span>Category, <span class="at">side =</span> <span class="st">"both"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>strawberry<span class="sc">$</span>Item <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(strawberry<span class="sc">$</span>Item, <span class="at">side =</span> <span class="st">"both"</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>strawberry<span class="sc">$</span>Metric <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(strawberry<span class="sc">$</span>Metric, <span class="at">side =</span> <span class="st">"both"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="exploring-fruit-column-finding-hidden-sub-columns" class="level2">
+<h2 class="anchored" data-anchor-id="exploring-fruit-column-finding-hidden-sub-columns">4.3 Exploring Fruit Column (finding hidden sub-columns)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(strawberry<span class="sc">$</span>Fruit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "STRAWBERRIES - ACRES BEARING"                   
+ [2] "STRAWBERRIES - ACRES GROWN"                     
+ [3] "STRAWBERRIES - ACRES NON-BEARING"               
+ [4] "STRAWBERRIES - OPERATIONS WITH AREA BEARING"    
+ [5] "STRAWBERRIES - OPERATIONS WITH AREA GROWN"      
+ [6] "STRAWBERRIES - OPERATIONS WITH AREA NON-BEARING"
+ [7] "STRAWBERRIES"                                   
+ [8] "STRAWBERRIES - PRICE RECEIVED"                  
+ [9] "STRAWBERRIES - ACRES HARVESTED"                 
+[10] "STRAWBERRIES - ACRES PLANTED"                   
+[11] "STRAWBERRIES - PRODUCTION"                      
+[12] "STRAWBERRIES - YIELD"                           
+[13] "STRAWBERRIES - APPLICATIONS"                    
+[14] "STRAWBERRIES - TREATED"                         </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">## generate a list of rows with the production and price information</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>spr <span class="ot">&lt;-</span> <span class="fu">which</span>((strawberry<span class="sc">$</span>Fruit<span class="sc">==</span><span class="st">"STRAWBERRIES - PRODUCTION"</span>) <span class="sc">|</span> (strawberry<span class="sc">$</span>Fruit<span class="sc">==</span><span class="st">"STRAWBERRIES - PRICE RECEIVED"</span>))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>strw_prod_price <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> <span class="fu">slice</span>(spr)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="do">## this has the census data, too</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>strw_chem <span class="ot">&lt;-</span> strawberry <span class="sc">|&gt;</span> <span class="fu">slice</span>(<span class="sc">-</span><span class="dv">1</span><span class="sc">*</span>spr)  <span class="do">## too soon</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="cleaning-area-grown-data" class="level2">
+<h2 class="anchored" data-anchor-id="cleaning-area-grown-data">4.4 Cleaning Area Grown Data</h2>
+</section>
+<section id="cleaning-splitting-chemical-data" class="level2">
+<h2 class="anchored" data-anchor-id="cleaning-splitting-chemical-data">4.5 Cleaning (Splitting) Chemical Data</h2>
+<p>In this step, our goal is to extract the chemical name, use, and code from the <code>Domain Category</code> column where applicable. The format of interest is:</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Input: <code>"CHEMICAL, FUNGICIDE: (BACILLUS SUBTILIS = 6479)"</code></li>
+<li>Output:
+<ul>
+<li><p><code>use</code> = <code>"FUNGICIDE"</code></p></li>
+<li><p><code>name</code> = <code>"BACILLUS SUBTILIS"</code></p></li>
+<li><p><code>code</code> = <code>"6479"</code></p></li>
+</ul></li>
+</ul>
+<p>After cleaning and organizing, this data should appear in three renamed columns as:</p>
+<p>FUNGICIDE, BACILLUS&nbsp;SUBTILIS, 6479</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Save the original Domain Category in another column</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>strawberry <span class="ot">&lt;-</span> strawberry <span class="sc">%&gt;%</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">original_domain_category =</span> <span class="st">`</span><span class="at">Domain Category</span><span class="st">`</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Filter for rows where the Domain Category contains CHEMICAL</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>chemical_data <span class="ot">&lt;-</span> strawberry <span class="sc">%&gt;%</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(<span class="st">`</span><span class="at">Domain Category</span><span class="st">`</span>, <span class="st">"CHEMICAL"</span>))</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Separate the Domain Category into 'type' and 'remaining'</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>chemical_data <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(<span class="at">col =</span> <span class="st">`</span><span class="at">Domain Category</span><span class="st">`</span>, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"type"</span>, <span class="st">"remaining"</span>), </span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>           <span class="at">sep =</span> <span class="st">", "</span>, <span class="at">extra =</span> <span class="st">"merge"</span>, <span class="at">fill =</span> <span class="st">"right"</span>)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: Further split the 'remaining' part into 'use' and 'chemical_info'</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>chemical_data <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(<span class="at">col =</span> remaining, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"use"</span>, <span class="st">"chemical_info"</span>), </span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>           <span class="at">sep =</span> <span class="st">": "</span>, <span class="at">extra =</span> <span class="st">"merge"</span>, <span class="at">fill =</span> <span class="st">"right"</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 5: Split the 'chemical_info' into 'name' and 'code'</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>chemical_data <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(<span class="at">col =</span> chemical_info, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"name"</span>, <span class="st">"code"</span>), </span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>           <span class="at">sep =</span> <span class="st">" = "</span>, <span class="at">extra =</span> <span class="st">"merge"</span>, <span class="at">fill =</span> <span class="st">"right"</span>)</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 6: Clean up the 'chemical_name' and 'chemical_code' columns</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>chemical_data <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="fu">str_remove_all</span>(name, <span class="st">"</span><span class="sc">\\</span><span class="st">("</span>),  <span class="co"># Remove '(' before chemical name</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">code =</span> <span class="fu">str_replace_all</span>(code, <span class="st">"</span><span class="sc">\\</span><span class="st">(|</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>),  <span class="co"># Remove '(' ')' around chemical code</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">code =</span> <span class="fu">as.numeric</span>(code)  <span class="co"># Convert chemical code to numeric</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 7: Select relevant columns and bring back the original Domain Category</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>final_chemical_data <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(State, Year, original_domain_category, type, use, name, code, Value)</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 8: View the final cleaned chemical data</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(final_chemical_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 3,359
+Columns: 8
+$ State                    &lt;chr&gt; "CALIFORNIA", "CALIFORNIA", "CALIFORNIA", "CA…
+$ Year                     &lt;dbl&gt; 2023, 2023, 2023, 2023, 2023, 2023, 2023, 202…
+$ original_domain_category &lt;chr&gt; "CHEMICAL, FUNGICIDE: (OXATHIAPIPROLIN = 1281…
+$ type                     &lt;chr&gt; "CHEMICAL", "CHEMICAL", "CHEMICAL", "CHEMICAL…
+$ use                      &lt;chr&gt; "FUNGICIDE", "INSECTICIDE", "INSECTICIDE", "O…
+$ name                     &lt;chr&gt; "OXATHIAPIPROLIN", "CYCLANILIPROLE", "PERMETH…
+$ code                     &lt;dbl&gt; 128111, 26202, 109701, 115003, 128111, 26202,…
+$ Value                    &lt;chr&gt; "(D)", "(D)", "(D)", "(NA)", "(D)", "(D)", "(…</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Saving the cleaned chemical data for future analysis</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(final_chemical_data, <span class="st">"cleaned_chemical_data.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="chemical-data-analysis" class="level1">
+<h1>6. Chemical Data Analysis</h1>
+<p>Following the data cleaning process, we will now focus on analyzing the chemicals used in strawberry farming. The cleaned dataset contains detailed information about various chemicals, their subtypes (fungicides, insecticides, herbicides, etc.), and the geographic and temporal application patterns. This report will dive into these data points to extract insights and identify trends in chemical usage</p>
+<p><strong>Objective</strong></p>
+<p>The primary goal of this analysis is to:</p>
+<ol type="1">
+<li>Identify the most commonly used chemicals in strawberry production</li>
+<li>Analyze geographic patterns of chemical application across different states</li>
+<li>Understand the usage trends over time, with particular attention to chemicals flagged by the WHO as potential carcinogens</li>
+<li>Highlight specific chemicals of concern, particularly those that are widely used and have possible health implications</li>
+</ol>
+<section id="data-overview" class="level2">
+<h2 class="anchored" data-anchor-id="data-overview">6.1 Data Overview</h2>
+<p>The chemical dataset, cleaned in earlier steps, includes the following relevant columns:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(final_chemical_data, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 3,359
+Columns: 8
+$ State                    &lt;chr&gt; …
+$ Year                     &lt;dbl&gt; …
+$ original_domain_category &lt;chr&gt; …
+$ type                     &lt;chr&gt; …
+$ use                      &lt;chr&gt; …
+$ name                     &lt;chr&gt; …
+$ code                     &lt;dbl&gt; …
+$ Value                    &lt;chr&gt; …</code></pre>
+</div>
+</div>
+<ul>
+<li><strong>State</strong>: The U.S. state where the chemical was applied.</li>
+<li><strong>Year</strong>: The year of the recorded chemical application.</li>
+<li><strong>Type</strong>: Indicates whether the chemical is an insecticide, herbicide, or fungicide, among other categories.</li>
+<li><strong>Use</strong>: The specific subtype of the chemical (e.g., “Fungicide”).</li>
+<li><strong>Name</strong>: The chemical’s active ingredient (e.g., “Glyphosate”).</li>
+<li><strong>Code</strong>: A unique code associated with the chemical compound.</li>
+<li><strong>Value</strong>: The quantity or extent of chemical application.</li>
+</ul>
+<p>The following analysis focuses on examining this chemical data and identifying significant trends and concerns.</p>
+<section id="overview-of-the-chemicals-data" class="level3">
+<h3 class="anchored" data-anchor-id="overview-of-the-chemicals-data">6.1.1 Overview of the Chemicals Data</h3>
+<p>We will first explore some general characteristics of the chemicals used in the strawberry data, focusing on key fields like <code>use</code>, <code>name</code>, and <code>code</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize the types of chemicals and their occurrences</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>chemical_summary <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(type, use) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(count))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'type'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View the summary</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">#chemical_summary</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a bar chart with count labels</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(chemical_summary, <span class="fu">aes</span>(<span class="at">x =</span> use, <span class="at">y =</span> count, <span class="at">fill =</span> use)) <span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.9</span>)) <span class="sc">+</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> count), <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.9</span>), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Chemical Use Distribution by Type (2018-2023)"</span>,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Chemical Use"</span>,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Count"</span>) <span class="sc">+</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_brewer</span>(<span class="at">palette =</span> <span class="st">"Set2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sb1_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="chemical-usage-in-different-states" class="level3">
+<h3 class="anchored" data-anchor-id="chemical-usage-in-different-states">6.1.2 Chemical Usage in Different States</h3>
+<p>We can also examine the usage of different chemicals across various states. Analyzing chemical usage across different states allows us to understand regional variations in farming practices and the specific chemicals preferred in certain areas. Factors such as climate, soil type, local pest populations, and agricultural policies can all influence the choice of chemicals used by farmers. For instance, warmer states might rely more heavily on insecticides due to higher pest pressures, while cooler or wetter states might see more use of fungicides to combat fungal diseases. Understanding these regional differences is essential for developing targeted strategies that promote sustainable farming practices while addressing local agricultural challenges.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Barplot of chemical use by state</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>bar_data <span class="ot">&lt;-</span> <span class="fu">table</span>(chemical_data<span class="sc">$</span>State)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(bar_data,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>        <span class="at">main =</span> <span class="st">"Distribution of Chemical Usage by State"</span>,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>        <span class="at">xlab =</span> <span class="st">"State"</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">ylab =</span> <span class="st">"Frequency of Chemical Use"</span>,</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">las =</span> <span class="dv">1</span>,  <span class="co"># Rotate the state names for better readability</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="st">"lightblue"</span>,</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">cex.names =</span> <span class="fl">0.8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sb1_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Very interesting… I did not expect to see only two states in this graph. I was skeptical and wrote another function to confirm that this was correct, and it was indeed correct. This graph indicates that only 2 U.S. states uses chemicals for their strawberry farming with California’s usage being almost twice as much as Florida’s usage.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>strawberry <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(Domain, <span class="st">"CHEMICAL"</span>)) <span class="sc">%&gt;%</span>   <span class="co"># Filter rows containing the word "CHEMICAL"</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(State) <span class="sc">%&gt;%</span>                          <span class="co"># Get distinct states</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>()                  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 1
+      n
+  &lt;int&gt;
+1     2</code></pre>
+</div>
+</div>
+</section>
+<section id="top-10-most-common-chemicals-used" class="level3">
+<h3 class="anchored" data-anchor-id="top-10-most-common-chemicals-used">6.1.3 Top 10 Most Common Chemicals Used</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find the top 10 most common chemical names</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>top_chemicals_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">sort</span>(<span class="fu">table</span>(chemical_data<span class="sc">$</span>name), </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                                       <span class="at">decreasing =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>])</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Rename the columns for better readability</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(top_chemicals_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Chemical"</span>, <span class="st">"Frequency"</span>)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the bar plot using ggplot2</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(top_chemicals_df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(Chemical, <span class="sc">-</span>Frequency), <span class="at">y =</span> Frequency)) <span class="sc">+</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">fill =</span> <span class="st">"lightgreen"</span>) <span class="sc">+</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Frequency), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.3</span>, <span class="at">size =</span> <span class="fl">3.5</span>) <span class="sc">+</span> <span class="co"># Adding text labels</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Top 10 Most Common Chemicals"</span>,</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Chemical Names"</span>,</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Frequency"</span>) <span class="sc">+</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>), <span class="co"># Rotate the labels</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>)) <span class="co"># Center the title</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sb1_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This bar plot visualizes the <strong>top 10 most frequently used chemicals</strong> in the dataset, showing their relative occurrence. The <code>TOTAL</code> chemical is the most frequently used, appearing <strong>64 times</strong>, while other chemicals such as <code>ABAMECTIN</code>, <code>ACETAMIPRID</code>, <code>AZOXYSTROBIN</code>, and <code>BIFENAZATE</code> occur less frequently, with <strong>40 instances each</strong>.</p>
+<p>Each chemical’s usage in this analysis suggests its importance or prevalence in strawberry production. The consistent frequency among these key chemicals, except for <code>TOTAL</code>, may indicate that certain pesticides or fungicides are favored across different farms and conditions, possibly due to their effectiveness or regulation.</p>
+</section>
+<section id="yearly-trends-in-chemical-application" class="level3">
+<h3 class="anchored" data-anchor-id="yearly-trends-in-chemical-application">6.1.4 Yearly Trends in Chemical Application</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize the chemical application by year</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>chemical_trend <span class="ot">&lt;-</span> chemical_data <span class="sc">%&gt;%</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Year) <span class="sc">%&gt;%</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">total_chemicals =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Year)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the yearly trends in chemical application</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(chemical_trend, <span class="fu">aes</span>(<span class="at">x =</span> Year, <span class="at">y =</span> total_chemicals)) <span class="sc">+</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span> </span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"darkblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span> </span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Yearly Trends in Chemical Application"</span>,</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Year"</span>,</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Total Chemical Applications"</span>) <span class="sc">+</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>)) <span class="co"># Centering the title</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sb1_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The line plot above visualizes the <strong>yearly trends in chemical applications</strong> in strawberry farming from <strong>2018 to 2023</strong>. The data reveals a few key points:</p>
+<ol type="1">
+<li><p><strong>2019</strong> saw the <strong>highest number of chemical applications</strong>, with over 900 instances.</p></li>
+<li><p>Following this peak, there was a <strong>significant drop</strong> in chemical applications by <strong>2021</strong>, bringing the total down to just above 850.</p></li>
+<li><p>Despite the decline, there was a <strong>slight increase in 2023</strong>, which may indicate a shift back towards higher usage of chemicals.</p></li>
+</ol>
+<p>The observed dip in chemical applications from 2019 to 2021 could likely be attributed to the global disruptions caused by the COVID-19 pandemic. Supply chain issues, labor shortages, and financial constraints may have limited farmers’ access to chemical inputs during this time. Additionally, the pandemic brought increased awareness of sustainability and health, potentially driving a shift toward reduced chemical usage in favor of organic or eco-friendly farming practices. The subsequent recovery in chemical applications by 2023 might reflect the normalization of supply chains and agricultural operations as the world adjusted to post-pandemic conditions.</p>
+</section>
+</section>
+<section id="are-they-really-loaded-with-carcinogenic-poisons" class="level2">
+<h2 class="anchored" data-anchor-id="are-they-really-loaded-with-carcinogenic-poisons">6.2 Are They Really Loaded with Carcinogenic Poisons?</h2>
+<p>A primary concern regarding strawberry production is the use of carcinogenic pesticides. We can identify whether strawberries are exposed to chemicals flagged by the WHO as carcinogenic (e.g., glyphosate, diazinon, malathion).</p>
+</section>
+<section id="are-they-really-good-for-your-health-bad-for-your-health" class="level2">
+<h2 class="anchored" data-anchor-id="are-they-really-good-for-your-health-bad-for-your-health">6.3 Are They Really Good for Your Health? Bad for Your Health?</h2>
+<p>Strawberries are generally known for their high vitamin C content and other nutrients. However, concerns arise regarding pesticide residues on non-organic strawberries. Here, we compare organic vs.&nbsp;conventional farming practices in relation to chemical use.</p>
+</section>
+<section id="are-organic-strawberries-carriers-of-deadly-diseases" class="level2">
+<h2 class="anchored" data-anchor-id="are-organic-strawberries-carriers-of-deadly-diseases">6.4 Are Organic Strawberries Carriers of Deadly Diseases?</h2>
+<p>There is often skepticism about the safety of organic produce due to the lack of synthetic pesticides. We can analyze if there are any reports or patterns of disease outbreaks tied to organic strawberry farming.</p>
+<section id="section" class="level3">
+<h3 class="anchored" data-anchor-id="section"></h3>
+</section>
+</section>
+</section>
+<section id="strawberry-data-analysis" class="level1">
+<h1>7. Strawberry Data Analysis</h1>
+<p>This section aims to respond to key questions about strawberry farming, production, chemical use, and consumer choices. The analysis leverages data from the USDA to explore how and where strawberries are grown, the chemicals involved in production, and whether organic farming practices differ significantly from conventional methods.</p>
+<section id="data-overview-1" class="level2">
+<h2 class="anchored" data-anchor-id="data-overview-1">7.1 Data Overview</h2>
+<p><em>Data overview here</em></p>
+</section>
+<section id="where-are-strawberries-grown-by-whom" class="level2">
+<h2 class="anchored" data-anchor-id="where-are-strawberries-grown-by-whom">7.2 Where Are Strawberries Grown? By Whom?</h2>
+<p>To begin, we need to identify the primary states and farms involved in strawberry production across the U.S. Understanding the geography of strawberry production can reveal key farming regions and production hubs.</p>
+</section>
+<section id="should-you-buy-conventional-or-organic-strawberries" class="level2">
+<h2 class="anchored" data-anchor-id="should-you-buy-conventional-or-organic-strawberries">7.3 Should You Buy Conventional or Organic Strawberries?</h2>
+<p>Given the difference in chemical use between conventional and organic strawberries, consumers must weigh the health benefits of organic produce against the higher costs typically associated with organic farming.</p>
+</section>
+<section id="do-strawberry-farmers-make-money" class="level2">
+<h2 class="anchored" data-anchor-id="do-strawberry-farmers-make-money">7.4 Do Strawberry Farmers Make Money?</h2>
+<p>Strawberry farming can be profitable, but it also depends on market prices, yield, and operational costs. We will analyze the total sales data to understand the economic impact of strawberry farming.</p>
+<section id="section-1" class="level3">
+<h3 class="anchored" data-anchor-id="section-1"></h3>
+</section>
+</section>
+<section id="how-do-strawberries-reach-the-market" class="level2">
+<h2 class="anchored" data-anchor-id="how-do-strawberries-reach-the-market">7.5 How Do Strawberries Reach the Market?</h2>
+<p>Understanding the supply chain is important for assessing the environmental impact of strawberry farming. While our dataset does not explicitly track the supply chain, we can infer transportation and distribution trends based on production regions.</p>
+</section>
+</section>
+<section id="conclusion" class="level1">
+<h1>Conclusion</h1>
+<p>The exploratory analysis of the strawberry dataset reveals important insights into the use of chemicals in strawberry farming across the United States. By carefully cleaning and structuring the data, we were able to examine trends in chemical applications across different states and over time.</p>
+<p>Our findings indicate that California is the predominant user of chemicals in strawberry farming, with Florida being the only other state with significant chemical usage. This dominance by two states raises questions about regional farming practices and their reliance on chemical inputs.</p>
+<p>The analysis of the yearly trends in chemical application revealed a peak in chemical usage in 2019, followed by a decline in 2021, likely influenced by the COVID-19 pandemic. The decrease may have been caused by disruptions in supply chains, labor shortages, or a shift in farming practices during the pandemic. By 2023, chemical usage began to rise again, suggesting a recovery in agricultural operations.</p>
+<p>This analysis underscores the importance of monitoring chemical usage in agriculture, particularly given the potential health and environmental impacts. Future studies could explore the effectiveness and safety of the most commonly used chemicals, as well as the potential for transitioning to more sustainable farming practices.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

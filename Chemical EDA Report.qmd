@@ -1,0 +1,535 @@
+---
+title: "Strawberry Chemical EDA and Data Cleaning"
+author: "Taha Ababou"
+date: "2024-10-21"
+format: 
+  pdf:
+    toc: true  # Enable the table of contents
+    toc_depth: 3
+    include-in-header: 
+       text: |
+         \usepackage{fvextra}
+         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+         \DefineVerbatimEnvironment{OutputCode}{Verbatim}{breaklines,commandchars=\\\{\}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#| label: initialize-libraries
+#| warning: false
+#| message: false
+
+# Loading necessary libraries for data cleaning and preparation
+library(knitr)  
+library(kableExtra)
+library(tidyverse)
+library(readxl)
+
+# Setting default R options for output formatting
+options(echo = FALSE, 
+        scipen = 999, warn = -1, message = FALSE)
+```
+
+# Introduction - Data Cleaning
+
+This document details the systematic data cleaning of the USDA open-source dataset related to strawberry production in the United States for the period from 2018 to 2024. After processing, the data will be split into four distinct R data objects to facilitate exploratory data analysis (EDA). These cleaned datasets include:
+
+1.  **Survey Data**: Survey-based production metrics.
+2.  **Census Data**: Census-based production information.
+3.  **Chemical Usage Data**: Use of chemicals in strawberry cultivation.
+4.  **Organic Production Data**: Data specific to organic strawberry production, extracted from the census.
+
+**Loading the Raw Dataset**
+
+```{r}
+# Loading the raw dataset for analysis
+strawberry_data <- read_csv("strawberries25_v3.csv", col_names = TRUE)
+```
+
+```{r include=FALSE}
+
+## Data Integrity Verification
+#Before any cleaning operation, we will verify that each row contains valid information about the corresponding state.
+
+# Extracting distinct state names
+unique_states <- strawberry_data |> distinct(State)
+
+# Counting occurrences for each state
+state_counts <- strawberry_data |> group_by(State) |> count()
+```
+
+## Removing Non-Informative Columns
+
+Some variables within the dataset contain only a single unique value across all observations, rendering them uninformative. As a result, we define a custom function, `drop_one_value_col()`, to automate the identification and removal of such columns.
+
+```{r}
+# Function to drop columns with a single unique value
+drop_one_value_col <- function(df){   
+  drop <- NULL  
+  for(i in 1:dim(df)[2]){     
+    if((df |> distinct(df[,i]) |> count()) == 1){
+      drop = c(drop, i)
+    } 
+  }
+  
+  ## report the result -- names of columns dropped
+  ## consider using the column content for labels 
+  ## or headers 
+  
+  if(is.null(drop)){return("none")}else{
+    print("Columns dropped:")
+    print(colnames(df)[drop])
+    strawberry <- df[, -1*drop]
+  }
+}
+
+# Removing columns with only one unique value
+strawberry_data <- drop_one_value_col(strawberry_data)
+```
+
+## Cleaning Specific Columns
+
+### Handling Missing and Non-Numeric Values
+
+The columns Value and CV (%) contain missing or irrelevant placeholders like (D), (Z), (L), and (H). While these placeholders are not needed for our Exploratory Data Analysis (EDA) report, they do convey certain information that may be useful for personal understanding:
+
+-   **(D)** means Data withheld to avoid disclosing information about individual operations.
+-   **(L)** means Low value, indicating that the value is present but too small to be reliably estimated or considered significant.
+-   **(Z)** means Zero or negligible, signifying that the value is less than half of the unit reported and is effectively zero.
+-   **(H)** means High value, used to indicate that the data has a high level of uncertainty or is flagged for other reasons, such as quality concerns.
+
+These values will be replaced with `NA`, and the `Value` column will be transformed into numeric format.
+
+```{r warning=FALSE}
+# Replace non-numeric codes with NA and convert to numeric
+strawberry_data <- strawberry_data |>
+  mutate(
+    Value = as.numeric(gsub("[(),DZH]", "", Value)),
+    `CV (%)` = as.numeric(gsub("[(),DLH]", "", `CV (%)`))
+  )
+```
+
+### Filtering Geographical Levels
+
+Only observations related to `NATIONAL` or `STATE` level data are retained as other levels are considered irrelevant for this analysis.
+
+```{r}
+# Filtering dataset by relevant geographic levels
+strawberry_data <- strawberry_data |> 
+  filter(`Geo Level` %in% c("NATIONAL", "STATE"))
+```
+
+## Separating Dataset by Program Type (`Census` & `Survey`)
+
+The dataset is divided based on the `Program` variable to create distinct datasets for `CENSUS` and `SURVEY` data.
+
+```{r}
+# Creating separate datasets for census and survey programs
+census_data <- strawberry_data |> filter(Program == "CENSUS") |> drop_one_value_col()
+survey_data <- strawberry_data |> filter(Program == "SURVEY") |> drop_one_value_col()
+
+# Validating that the total row count remains consistent
+stopifnot(nrow(strawberry_data) == (nrow(census_data) + nrow(survey_data)))
+```
+
+## Chemical Usage Analysis
+
+For analyzing chemical use, we will clean and isolate relevant information from the `Domain Category` column.
+
+**Example:**
+
+-   Input: `"CHEMICAL, FUNGICIDE: (BACILLUS SUBTILIS = 6479)"`
+-   Output:
+    -   `use` = `"FUNGICIDE"`
+
+    -   `name` = `"BACILLUS SUBTILIS"`
+
+    -   `code` = `"6479"`
+
+After cleaning and organizing, this data should appear in three renamed columns as:
+
+FUNGICIDE, BACILLUS SUBTILIS, 6479
+
+```{r}
+# Efficiently splitting the `Domain Category` and `Data Item` columns while preserving `type` and `use`
+
+# Filtering, splitting, cleaning, and organizing the chemical data
+chemical_data <- survey_data %>%
+  # Filter for rows where the Domain Category contains CHEMICAL
+  filter(str_detect(`Domain Category`, "CHEMICAL")) %>%
+  
+  # Separate the `Domain Category` into 'type' and 'remaining'
+  separate(col = `Domain Category`, into = c("type", "remaining"), 
+           sep = ", ", extra = "merge", fill = "right") %>%
+  
+  # Further split the 'remaining' part into 'use' and 'chemical_info'
+  separate(col = remaining, into = c("use", "chemical_info"), 
+           sep = ": ", extra = "merge", fill = "right") %>%
+  
+  # Split the 'chemical_info' into 'name' and 'code'
+  separate(col = chemical_info, into = c("name", "code"), 
+           sep = " = ", extra = "merge", fill = "right") %>%
+  
+  # Clean up the 'name' and 'code' columns
+  mutate(
+    name = str_remove_all(name, "\\("),  # Remove '(' before chemical name
+    code = str_replace_all(code, "\\(|\\)", ""),  # Remove '(' ')' around chemical code
+    code = as.numeric(code)  # Convert chemical code to numeric
+  ) %>%
+  
+  # Splitting `Data Item` into relevant components
+  separate(col = `Data Item`, into = c("straw", "mkt", "measure", "other"),
+           sep = ", ", extra = "merge", fill = "right") %>%
+
+  # Handle the prefix "MEASURED IN" from `Data Item`
+  mutate(
+    measure = if_else(str_detect(mkt, "MEASURED IN"), mkt, measure),
+    mkt = if_else(str_detect(mkt, "MEASURED IN"), NA_character_, mkt)
+  ) %>%
+
+  # Drop non-informative columns
+  #drop_one_value_col() %>%
+  
+  # Select relevant columns
+  select(State, Year, mkt, measure, type, use, name = name, code, Value)
+
+# Clean the mkt and measure columns in chemical_data
+chemical_data <- chemical_data %>%
+  # Remove "MEASURED IN " from `mkt` and `measure` columns
+  mutate(
+    mkt = str_remove(mkt, "^MEASURED IN "),
+    measure = str_remove(measure, "^MEASURED IN ")
+  )
+
+# View the final cleaned chemical data
+chemical_data %>%
+  head(3)  # Displaying the first 3 rows
+  #kable()  # Simple table
+```
+
+## Cleaning Census Data for Organic Strawberries
+
+We will further clean and organize the census data, particularly focusing on data related to organic strawberry production.
+
+```{r}
+# Parsing information from Data Item for the census data
+census_data <- census_data |>
+  separate_wider_delim(cols = `Data Item`, delim = " - ", names = c("strawberries", "category"), too_few = "align_start")
+```
+
+```{r}
+# Isolating organic strawberry data
+census_data <- census_data |> 
+  separate_wider_delim(cols = strawberries, delim = ", ", names = c("strawberries", "organic_flag", "organic_detail"), too_few = "align_start") |>
+  drop_one_value_col()
+```
+
+```{r}
+organic_data <- census_data |> filter(organic_flag == "ORGANIC")
+census_data <- census_data |> filter(is.na(organic_flag))
+
+# Removing columns with only one unique value
+organic_data <- drop_one_value_col(organic_data)
+```
+
+## Organizing Category and Bearing Type
+
+Finally, we refine the organization of the `Category` and `Domain Category` columns to enhance interpretability.
+
+```{r}
+# Splitting the category column for census data
+census_data <- census_data |>
+  separate_wider_delim(cols = `category`, delim = " ", names = c("Measure", "bearing_type"), too_few = "align_start", too_many = "merge") |>
+  mutate(bearing_type = str_replace(bearing_type, "WITH ", ""))
+```
+
+```{r}
+## remove AREA GROWN and parens 
+## change NOT SPECIFIC TO TOTAL
+
+census_data <- census_data |> rename(size_bracket = `Domain Category`)
+
+census_data$size_bracket <- str_replace(census_data$size_bracket, "NOT SPECIFIED", "TOTAL")
+
+census_data$size_bracket <- str_replace(census_data$size_bracket, "AREA GROWN: ", "")
+
+```
+
+## Export Cleaned Data
+
+Finally, we save the cleaned datasets as R data objects for further exploratory and analytical purposes.
+
+```{r}
+# Export cleaned datasets to R data objects
+saveRDS(survey_data, "clean_datasets/cleaned_survey_data.rds")
+saveRDS(census_data, "clean_datasets/cleaned_census_data.rds")
+saveRDS(chemical_data, "clean_datasets/cleaned_chemical_data.rds")
+saveRDS(organic_data, "clean_datasets/cleaned_organic_data.rds")
+cat("✅ Exported cleaned datasets to RDS files in folder `clean_datasets`\n")
+```
+
+```{r}
+write.csv(survey_data, "clean_datasets/_survey_data.csv", row.names = FALSE)
+write.csv(census_data, "clean_datasets/_census_data.csv", row.names = FALSE)
+write.csv(chemical_data, "clean_datasets/_chemicals.csv", row.names = FALSE)
+write.csv(organic_data, "clean_datasets/_census_organic_data.csv", row.names = FALSE)
+```
+
+# EDA Report
+
+After completing the data cleaning process, it's time to start on the exploratory data analysis (EDA) phase. My goal here is to dive deep into understanding the chemical usage in strawberry farming and uncover meaningful patterns that could lead us to critical insights about farming practices, health implications, and sustainability.
+
+## Overview: Why Chemical Usage Trends Matter
+
+A critical question that has emerged from our data is the role of various chemicals used in strawberry farming. Pesticides, herbicides, fungicides, and other chemicals are applied to strawberries to protect yields from pests and diseases. However, there is an ongoing debate about their safety and long-term effects on both the environment and consumers. This section of the EDA focuses on exploring the trends in chemical usage over the years, particularly in California and Florida, which are the primary producers of strawberries in the United States.
+
+I want to understand which chemicals are most frequently used and whether there have been any notable changes in usage patterns from 2018 to 2023. This exploration will help us identify trends and guide us in answering questions about the safety and impact of certain chemicals on strawberry farming.
+
+```{r}
+chemical_data |> count(measure) |> kable()
+```
+
+```{r}
+chemical_data |> count(measure, is.na(Value)) |> kable()
+```
+
+From the measures available, determining the "best" measure to calculate the total usage of a chemical depends how meaningful a combined total would be across the different measures. Here is an analysis of the measures provided above:
+
+1.  *LB:* Represents the total weight in pounds and is a direct and straightforward measure of chemical use. However, nearly 57% of the entries for this measure have missing values (TRUE counts: 394 out of 691). Despite this, it’s a unit that provides an absolute amount, making it useful for aggregation if we want to calculate the total quantity of a chemical used.
+
+2.  *LB / ACRE / APPLICATION and LB / ACRE / YEAR:* Both of these measures are not straightforward to aggregate because they are rate-based metrics. They measure the quantity of a chemical per area (acre), per application, or per year. These units are useful for understanding efficiency and intensity of chemical use rather than total amounts. Additionally, both measures have about 59% missing values (TRUE counts: 391 out of 659), further complicating their reliability for calculating a total usage.
+
+3.  *NUMBER:* Represents counts of something, possibly the number of times a chemical was applied, treated, or detected. This unit is difficult to combine meaningfully with others to calculate "total usage." About 56% of the values are missing (TRUE counts: 368 out of 659).
+
+4.  *PCT OF AREA BEARING:* Represents the percentage of an area treated or affected by the chemical. This is more of a proportion rather than a quantity. Nearly 53% of the values are missing (TRUE counts: 370 out of 691). Aggregating percentages across different states or years is tricky since they may represent different baselines, making it difficult to interpret a "total usage."
+
+The *"LB"* measure is the most appropriate to use when calculating the total usage of chemicals, as it represents an absolute value (weight in pounds) that is directly interpretable and suitable for aggregation across years. Despite the presence of missing values, it’s still a more reasonable choice than rate-based or proportional measures, which could lead to inaccuracies or misinterpretations if summed directly.
+
+```{r}
+# Filter data for California and Florida
+chemical_data_california <- chemical_data %>% filter(State == "CALIFORNIA")
+chemical_data_florida <- chemical_data %>% filter(State == "FLORIDA")
+```
+
+### Top 5 Chemicals by Total Usage in California and Florida
+
+```{r}
+# Calculate total usage for California (only "LB" measurements)
+total_usage_lb_california <- chemical_data_california %>%
+  filter(measure == "LB" & name != "TOTAL)") %>%
+  group_by(name) %>%
+  summarise(total_usage = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(total_usage))
+
+# Calculate total usage for Florida (only "LB" measurements)
+total_usage_lb_florida <- chemical_data_florida %>%
+  filter(measure == "LB" & name != "TOTAL)") %>%
+  group_by(name) %>%
+  summarise(total_usage = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(total_usage))
+
+# Extract the top 5 chemicals for each state
+top_5_chemicals_california <- total_usage_lb_california %>% slice(1:5)
+top_5_chemicals_florida <- total_usage_lb_florida %>% slice(1:5)
+
+# Create bar plots for California and Florida
+bar_plot_california <- ggplot(top_5_chemicals_california, aes(x = reorder(name, -total_usage), y = total_usage, fill = name)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = round(total_usage, 1)), vjust = -0.3, size = 3.5) +
+  labs(
+    title = "Top 5 Chemicals by Total Usage in California (2018-2023)",
+    x = "Chemical Name",
+    y = "Total Usage (lbs)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+bar_plot_florida <- ggplot(top_5_chemicals_florida, aes(x = reorder(name, -total_usage), y = total_usage, fill = name)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = round(total_usage, 1)), vjust = -0.3, size = 3.5) +
+  labs(
+    title = "Top 5 Chemicals by Total Usage in Florida (2018-2023)",
+    x = "Chemical Name",
+    y = "Total Usage (lbs)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Display the bar plots
+print(bar_plot_california)
+print(bar_plot_florida)
+```
+
+#### Top 5 Chemicals by Total Usage in California (2018-2023)
+
+The bar graph for California's chemical usage shows that **Chloropicrin** is the most heavily used chemical, with over 25 million pounds applied from 2018 to 2023. The next highest usage is for **Dichloropropene** and **Sulfur**, but their usage levels are significantly lower, suggesting Chloropicrin's overwhelming dominance in strawberry farming. This may indicate its critical role in pest management or other functions that make it a preferred choice.
+
+The high usage of Chloropicrin compared to other chemicals raises questions about its effectiveness and potential side effects, both environmentally and health-wise. Understanding why it is used so extensively could provide insights into more sustainable alternatives or improved application methods.
+
+#### Top 5 Chemicals by Total Usage in Florida (2018-2023)
+
+For Florida, **Captan** and **Thiram** lead the list of chemicals used, though in much smaller quantities compared to California's top chemicals. **Captan** is the most applied with over 500,000 pounds, followed by **Thiram** with 331,800 pounds. **Cyprodinil**, **Fludioxonil**, and **Azoxystrobin** show comparatively minimal usage.
+
+The lower overall usage of chemicals in Florida could be indicative of different farming practices, environmental conditions, or regulatory factors compared to California. The prominence of Captan and Thiram highlights their perceived efficacy, though their moderate usage compared to California suggests a need to understand state-specific agricultural practices.
+
+### Yearly Trends for California and Florida
+
+```{r}
+# Calculate yearly trends for the top 5 chemicals in California
+chemical_trends_lb_california <- chemical_data_california %>%
+  filter(name %in% top_5_chemicals_california$name, measure == "LB" & name != "TOTAL)") %>%
+  group_by(Year, name) %>%
+  summarise(yearly_usage = sum(Value, na.rm = TRUE))
+
+# Calculate yearly trends for the top 5 chemicals in Florida
+chemical_trends_lb_florida <- chemical_data_florida %>%
+  filter(name %in% top_5_chemicals_florida$name, measure == "LB" & name != "TOTAL)") %>%
+  group_by(Year, name) %>%
+  summarise(yearly_usage = sum(Value, na.rm = TRUE))
+
+# Create line plots for California and Florida
+line_graph_california <- ggplot(chemical_trends_lb_california, aes(x = Year, y = yearly_usage, color = name, group = name)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Yearly Usage Trends of Top 5 Chemicals in California (2018-2023) - LB Only",
+    x = "Year",
+    y = "Yearly Usage (lbs)",
+    color = "Chemical Name"
+  ) +
+  theme_minimal()
+
+line_graph_florida <- ggplot(chemical_trends_lb_florida, aes(x = Year, y = yearly_usage, color = name, group = name)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Yearly Usage Trends of Top 5 Chemicals in Florida (2018-2023) - LB Only",
+    x = "Year",
+    y = "Yearly Usage (lbs)",
+    color = "Chemical Name"
+  ) +
+  theme_minimal()
+
+# Display the line plots
+print(line_graph_california)
+print(line_graph_florida)
+```
+
+#### Yearly Usage Trends of Top 5 Chemicals in California (2018-2023)
+
+The line graph for California highlights the dominance of **Chloropicrin** in the state's chemical usage for strawberries from 2018 to 2023. Chloropicrin saw a steep increase in 2019, followed by a slight dip in 2021 and then a significant rise in 2023. The other chemicals, such as **Dichloropropene**, **Sulfur**, **Metam-Potassium**, and **Captan**, displayed relatively minor fluctuations with no major increases or decreases compared to Chloropicrin.
+
+The notable increase in Chloropicrin could indicate an increasing reliance on this chemical, which may require further investigation into its impact on soil and crop health as well as human safety. The consistent usage of the other chemicals suggests they are stable and commonly used components of strawberry farming.
+
+#### Yearly Usage Trends of Top 5 Chemicals in Florida (2018-2023)
+
+In Florida, the line graph reveals a different pattern compared to California. **Captan** and **Thiram** are the most commonly used chemicals, with **Thiram** seeing a steep increase in usage until 2021, followed by a decline in 2023. The other chemicals—**Cyprodinil**, **Fludioxonil**, and **Azoxystrobin**—had relatively low and stable usage throughout the years.
+
+The sharp rise in Thiram usage, followed by a drop, suggests a specific purpose or condition that required increased application during the years 2019-2021. This trend warrants further examination to understand the reasons behind this surge and subsequent reduction. Captan's stable usage, along with the minor use of other chemicals, highlights the preference for certain chemicals for strawberry farming in Florida.
+
+### Next Steps
+
+To gain a better understanding of the observed trends, the next steps will involve:
+
+1.  **Examining the Function and Impact**: We will investigate **Chloropicrin**, **Captan**, and **Thiram** in more detail to understand why they are used at such high levels in California and Florida. We will explore their specific roles in strawberry farming, whether they are fungicides, pesticides, or serve another function.
+
+2.  **Assessing Risks**: We will assess the potential health and environmental impacts of **Chloropicrin**, which shows extremely high usage in California, and **Thiram**, which has seen significant usage spikes in Florida. This will help understand the risks these chemicals pose to human health, environmental safety, and biodiversity.
+
+3.  **External Data Integration**: To support this assessment, we will utilize external datasets such as the EPA Toxic Chemical Dashboard, PubChem, and other relevant sources to gather information on the toxicity, usage guidelines, and regulations for these chemicals. The goal is to determine whether safer alternatives or improved methods of application exist.
+
+## Examining the Function and Impact
+
+We will start by examining the function and use of these chemicals. Specifically, we'll analyze whether they are fungicides, pesticides, herbicides, or other types of agrochemicals.
+
+Let's begin with **Chloropicrin**, **Captan**, and **Thiram**:
+
+### **Retrieve Chemical Uses**
+
+We will filter the dataset to focus on **Chloropicrin**, **Captan**, and **Thiram**, and determine their intended use in agriculture, such as whether they are fungicides or insecticides.
+
+```{r}
+# Filter the dataset for the selected chemicals
+selected_chemicals <- chemical_data %>%
+  filter(name %in% c("CHLOROPICRIN", "CAPTAN", "THIRAM")) %>%
+  select(name, use) %>%
+  distinct()
+
+# Print the usage of each selected chemical
+selected_chemicals |> kable()
+
+```
+
+-   **Captan** and **Thiram** are both **fungicides**, commonly used to protect strawberry crops from fungal diseases. Their application is critical to prevent mold and mildew, which could otherwise significantly reduce crop yields.
+
+-   **Chloropicrin** falls under the category **Other**, suggesting that it is not a traditional fungicide or insecticide. Chloropicrin is often used as a **soil fumigant**, which helps sterilize the soil by killing a broad spectrum of pathogens, nematodes, and pests. Its classification as "Other" reflects its broader use compared to specific targeted chemicals like fungicides or insecticides.
+
+We need to understand the intended use of each chemical to helps us pinpoint which chemicals are likely contributing most to protecting the strawberry crops from fungi and which ones serve a broader, potentially more hazardous role, such as **Chloropicrin** in soil treatment. To do this, we will look into external datasets to assess the potential health and environmental risks of these chemicals, particularly focusing on **Chloropicrin** since it is heavily used and classified as "Other," implying broader and possibly riskier use.
+
+## Assessing Risks
+
+To evaluate the safety of these chemicals, let's use the EPA Toxic Chemical Dashboard to gather detailed toxicity data for Chloropicrin (including Captan and Thiram).
+
+```{r}
+# Create a dataframe for chemical usage types
+chemical_usage <- data.frame(
+  name = c("CHLOROPICRIN", "CAPTAN", "THIRAM"),
+  use = c("OTHER", "FUNGICIDE", "FUNGICIDE")
+)
+
+# Filter distinct chemical codes for selected chemicals, add usage info, and combine into one table
+chemical_info <- chemical_data |>
+  filter(name %in% c("CHLOROPICRIN", "CAPTAN", "THIRAM")) |>
+  select(name, code) |>
+  distinct() |>
+  left_join(chemical_usage, by = "name") |>
+  arrange(name)
+
+# Display the table using kable()
+chemical_info |>
+  select(use, name, code) |>
+  kable(col.names = c("Use", "Chemical Name", "Chemical Code"), caption = "Chemical Information for Selected Chemicals")
+```
+
+**Chloropicrin - 81501**
+
+After researching on PubChem, I found detailed information on chloropicrin's toxicity. Chloropicrin is a soil fumigant effective against fungi, insects, and nematodes but known for its significant health risks. It belongs to the volatile organic compound (VOC) chemical class and is highly irritating to the respiratory system, eyes, and skin. Chloropicrin can be absorbed by humans through inhalation, ingestion, or skin contact. This chemical has a toxicological history that even includes its use as a chemical warfare agent. Due to this toxicity, in the context of its use in strawberry farming, concerns about potential residue levels on strawberries and safety for human consumption arise.
+
+*\[Sources\] [Office of Pesticide Programs](https://ordspub.epa.gov/ords/pesticides/f?p=CHEMICALSEARCH:3::::1,3,31,7,12,25:P3_XCHEMICAL_ID:1814)*, [*PubChem*](https://pubchem.ncbi.nlm.nih.gov/compound/6423)
+
+**Captan - 81301**
+
+After researching on PubChem, I gathered that captan is widely used as a fungicide in agricultural practices, especially in growing fruits like strawberries. Captan belongs to the phthalimide chemical class and is effective in preventing fungal growth and improving crop yield. However, captan poses some health risks to consumers. While it is not classified as a human carcinogen, there are concerns about captan residue on strawberries. Eating strawberries treated with captan may cause mild irritation to the gastrointestinal tract if residues are present in significant quantities, and it may be especially concerning for individuals with sensitivities or allergies.
+
+*\[Source\] [PubChem](https://pubchem.ncbi.nlm.nih.gov/compound/8606)*
+
+**Thiram - 79801**
+
+According to PubChem, thiram is another commonly used fungicide, also employed to deter animals from eating crops. Thiram belongs to the dithiocarbamate group and is effective against various fungal pathogens. For consumers, there are health risks associated with potential thiram residues on strawberries. Ingesting strawberries with thiram residues may lead to mild symptoms like nausea or headaches, and prolonged consumption could cause allergic reactions in susceptible individuals. Ensuring low residue levels is essential to minimize health risks and ensure the strawberries are safe for consumption.
+
+*\[Source\] [PubChem](https://pubchem.ncbi.nlm.nih.gov/compound/5455#section=NIOSH-Analytical-Methods)*
+
+# Conclusion and Next Steps
+
+In my exploration of the use of chloropicrin, captan, and thiram, I uncovered significant insights into their applications in agriculture and the health implications they carry. Chloropicrin, in particular, stood out due to its extensive use as a soil fumigant and its associated toxicity concerns. While it's effective for pest control, its irritant properties and its history as a chemical warfare agent underline the importance of further investigation into its residue levels on strawberries and its safety for human consumption.
+
+### Next Steps
+
+Moving forward, I plan to focus on:
+
+1.  **Residue Analysis**: Evaluating the residue levels of chloropicrin, captan, and thiram on strawberries and other crops. This will allow me to better understand consumer exposure risks and determine whether these chemicals are within safe limits.
+
+2.  **Health Impact Assessment**: Utilizing external datasets like the EPA Toxic Chemical Dashboard and PubChem, I intend to delve deeper into the toxicity profiles of these chemicals, examining their potential health impacts, including any carcinogenic effects and broader environmental implications.
+
+3.  **Comparative Analysis of Chemicals**: I will conduct a comparative risk-benefit analysis of chloropicrin, captan, and thiram, weighing their effectiveness in pest control against the health and environmental risks they may pose.
+
+### New Questions
+
+As I progress, several important questions have emerged that need further investigation:
+
+-   **What are the long-term health impacts of chloropicrin residue on commonly consumed fruits, such as strawberries?**
+
+-   **How do captan and thiram compare to chloropicrin regarding health risks, particularly for farm workers and consumers?**
+
+-   **Are there safer, equally effective alternatives to these chemicals that could be used to mitigate health risks while maintaining agricultural efficiency?**
+
+Addressing these questions is essential for ensuring that the use of chemicals in agriculture strikes a balance between effective pest management and the health and safety of both consumers and the environment.

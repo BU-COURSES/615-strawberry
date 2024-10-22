@@ -3,7 +3,7 @@ title: "MA615 Strawberries EDA"
 author: "Taha Ababou"
 date: "2024-10-01"
 format: 
-  pdf:
+  html:
     toc: true  # Enable the table of contents
     toc-depth: 3
 editor: visual
@@ -41,13 +41,24 @@ We begin by loading the dataset and exploring its structure.
 ```{r}
 #| label: read data - glimpse 
 
-strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE)
+strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE, show_col_types = FALSE )
 
-glimpse(strawberry)
-#structure(strawberry)
+# glimpse(strawberry)
 ```
 
-# 2. Remove Single-Value Columns
+Ditch the counties
+
+```{r}
+#| label: ditch the counties
+
+unique(strawberry$`Geo Level`)
+
+strawberry <- strawberry |> 
+  filter(`Geo Level`== "NATIONAL" | `Geo Level`== "STATE")
+  
+```
+
+## Remove Single-Value Columns
 
 We now define a function to drop columns with a single unique value across all rows, as they don't add useful information to the analysis.
 
@@ -319,8 +330,6 @@ ggplot(top_chemicals_df, aes(x = reorder(Chemical, -Frequency), y = Frequency)) 
        y = "Frequency") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), # Rotate the labels
         plot.title = element_text(hjust = 0.5)) # Center the title
-
-
 ```
 
 This bar plot visualizes the **top 10 most frequently used chemicals** in the dataset, showing their relative occurrence. The `TOTAL` chemical is the most frequently used, appearing **64 times**, while other chemicals such as `ABAMECTIN`, `ACETAMIPRID`, `AZOXYSTROBIN`, and `BIFENAZATE` occur less frequently, with **40 instances each**.

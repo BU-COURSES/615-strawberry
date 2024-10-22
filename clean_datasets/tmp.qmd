@@ -1,0 +1,199 @@
+## Handling Missing Values with State-Level Ratios
+
+The following functions have been replaced with a more optimized imputation strategy that incorporates both interpolation and scaling of imputed values to ensure accuracy.
+
+### Interpolation and Scaling for Missing Values
+
+The goal of this section is to efficiently handle missing values in the `census_data` dataframe. The functions in this section perform the following:
+
+1. **Interpolation of Missing Values**: Using logical assumptions and calculations to impute missing data points where either the `BEARING`, `NON-BEARING`, or `GROWN` values are not available.
+2. **Scaling of Imputed Values**: Ensuring that after imputation, the newly generated values are consistent with the totals reported for each state and measure.
+3. **Handling Different Scenarios**: Differentiating between cases where both `BEARING` and `NON-BEARING` values are missing versus only one is missing.
+4. **Maintaining Data Consistency**: Applying proportional adjustments to ensure that the calculated values add up to reported totals, thereby maintaining consistency and accuracy of the dataset.
+
+```{r}
+#| label: explore census_data$Domain & Domain Category
+#| echo: false
+
+## remove AREA GROWN and parens 
+## change NOT SPECIFIC TO TOTAL
+
+census_data <- census_data |> rename(size_bracket = `Domain Category`)
+
+census_data$size_bracket <- str_replace(census_data$size_bracket, "NOT SPECIFIED", "TOTAL")
+
+census_data$size_bracket <- str_replace(census_data$size_bracket, "AREA GROWN: ", "")
+
+
+#We can deal with those cases as follows:
+#We are going to write a function that does the imputation for one index
+#Then we can just sapply it over the vector if na indices and finally
+#assign that to the missing values.
+
+#First we adapt our previous proportion function to size brackets as a prop of total
+#This is a function we shall use below
+
+
+prop_by_size_bracket <- function(state, measure, bearing, bracket) {
+  state_cen <- census_data |> filter(State == state & Measure == measure)
+  bracket_vec <- state_cen |> filter(size_bracket == bracket)
+  bracket_vec <- bracket_vec$Value
+  bracket_indices <- which(!is.na(bracket_vec))
+  
+  if (length(bracket_indices) != 0) {
+    total_vec <- state_cen |> filter(size_bracket == "TOTAL")
+    total_vec <- total_vec[bracket_indices, ]$Value
+    
+    bracket_no_na <- which(!is.na(bracket_vec))
+    total_no_na <- which(!is.na(total_vec))
+    
+    if (length(intersect(bracket_no_na, total_no_na)) != 0) {
+      not_na_indices <- intersect(bracket_no_na, total_no_na)
+      
+      bracket_vec_noNA <- bracket_vec[not_na_indices]
+      total_vec_noNA <- total_vec[not_na_indices]
+      
+    } else {
+      bracket_vec_noNA <- mean(bracket_vec[bracket_no_na])
+      total_vec_noNA <- mean(total_vec[total_no_na])
+    }
+    return(mean(bracket_vec_noNA / total_vec_noNA))
+  } else{
+    sum_non_total <- state_cen |> filter(size_bracket != "TOTAL") |> filter(!is.na(Value))
+    sum_non_total <- sum(sum_non_total$Value)
+    
+    total <- state_cen |> filter(size_bracket == "TOTAL")
+    total <- sum(total$Value)
+    #There's a small technicality to deal with here:
+    #The rest of this function is returning a proportion but this part is not.
+    #It gives us the actual imputed value.
+    #That's fine but we need to be careful how we use it in the final function
+    #To do that, we'll return a vector with an arbitrary second element
+    #Then we can check the type when we call this function and use it accordingly
+    return(as.character((total - sum_non_total) / length(bracket_vec)))
+  }
+}
+
+```
+
+```{r}
+#| label: imputation final
+#| echo: false
+
+state_vec <- census_data |> distinct(State)
+
+# Retrieving indices of rows with NA Values
+bearing_na_indices <- which(is.na(census_data$Value) &
+                              census_data$bearing_type == "BEARING")
+non_bearing_na_indices <- which(is.na(census_data$Value) &
+                                  census_data$bearing_type == "NON-BEARING")
+grown_na_indices <- which(is.na(census_data$Value) &
+                            census_data$bearing_type == "GROWN")
+
+# Function for calculating the proportion between bearing and grown
+bearing_non_bearing_prop_avg <- function(state, measure, bearing) {
+  state_cen <- census_data |> filter(State == state & Measure == measure)
+  bearing_vec <- state_cen |> filter(bearing_type == bearing)
+  bearing_vec <- bearing_vec$Value
+  bearing_indices <- which(!is.na(bearing_vec))
+  
+  grown_vec <- state_cen |> filter(bearing_type == "GROWN")
+  grown_vec <- grown_vec[bearing_indices, ]$Value
+  
+  bearing_no_na <- which(!is.na(bearing_vec))
+  grown_no_na <- which(!is.na(grown_vec))
+  
+  not_na_indices <- intersect(bearing_no_na, grown_no_na)
+  
+  bearing_vec_noNA <- bearing_vec[not_na_indices]
+  grown_vec_noNA <- grown_vec[not_na_indices]
+  
+  return(mean(bearing_vec_noNA / grown_vec_noNA))
+}
+
+# Imputation function for GROWN values
+census_grown_imputer <- function(i) {
+  state <- as.character(census_data[i, "State"])
+  measure <- as.character(census_data[i, "Measure"])
+  size_brack <- as.character(census_data[i, "size_bracket"])
+  
+  non_bearing_val <- as.numeric(
+    census_data |> filter(
+      State == state &
+        Measure ==   measure &
+        size_bracket == size_brack &
+        bearing_type == "NON-BEARING"
+    ) |> select(Value)
+  )
+  
+  bearing_val <- as.numeric(
+    census_data |> filter(
+      State == state &
+        Measure ==   measure &
+        size_bracket == size_brack &
+        bearing_type == "BEARING"
+    ) |> select(Value)
+  )
+  
+  # Handling different cases of missing values
+  if (!is.na(non_bearing_val) & !is.na(bearing_val)) {
+    return(bearing_val + non_bearing_val)
+  } else if ((!is.na(non_bearing_val) & is.na(bearing_val))) {
+    prop <- bearing_non_bearing_prop_avg(state, measure, bearing = "NON-BEARING")
+    return(non_bearing_val / prop)
+  } else if ((!is.na(bearing_val) & is.na(non_bearing_val))) {
+    prop <- bearing_non_bearing_prop_avg(state, measure, bearing = "BEARING")
+    return(bearing_val / prop)
+  } else {
+    bearing <- "GROWN"
+    prop <- prop_by_size_bracket(state, measure, bearing, size_brack)
+    total <- as.numeric(
+      census_data |> filter(
+        State == state &
+          Measure == measure &
+          size_bracket == "TOTAL" & bearing_type == bearing
+      ) |> select(Value)
+    )
+    if (class(prop) == "character") {
+      return(as.numeric(prop))
+    } else {
+      return(prop * total)
+    }
+  }
+}
+
+# Applying the imputation function to GROWN values
+grown_imputed <- sapply(grown_na_indices, census_grown_imputer)
+census_data$Value[grown_na_indices] <- grown_imputed
+
+# Function to scale imputed values to ensure they sum to the total
+imputed_val_scaler <- function(index_vec, bearing) {
+  scaled_imputed_vals <- rep(0, length(index_vec))
+  index_tracker <- c()
+  for (i in index_vec) {
+    if (!(i %in% index_tracker)) {
+      grouped_indices <- index_vec[which(census_data$State[index_vec] == census_data$State[i])]
+      state <- census_data$State[i]
+      measure <- census_data$Measure[i]
+      state_total_cen <- census_data |> filter(State == state &
+                                               Measure == measure & bearing_type == bearing)
+      state_total_cen_not_total <- state_total_cen |> filter(Domain != "TOTAL")
+      overall_total <- state_total_cen |> filter(Domain == "TOTAL")
+      overall_total <- overall_total$Value
+      grouped_indices_adj <- grouped_indices - which(
+        census_data$State == state &
+          census_data$Measure == measure & census_data$bearing_type == bearing
+      )[1] + 1
+      correct_total <- overall_total - sum(state_total_cen_not_total$Value[-grouped_indices_adj])
+      incorrect_total <- sum(state_total_cen_not_total$Value[grouped_indices_adj])
+      scaled_vals <- (correct_total / incorrect_total) * state_total_cen_not_total$Value[grouped_indices_adj]
+      scaled_imputed_vals[which(index_vec %in% grouped_indices)] <- scaled_vals
+      index_tracker <- c(grouped_indices, index_tracker)
+    }
+  }
+  return(scaled_imputed_vals)
+}
+
+grown_imputed_scaled <- imputed_val_scaler(grown_na_indices, bearing = "GROWN")
+census_data$Value[grown_na_indices] <- grown_imputed_scaled
+```

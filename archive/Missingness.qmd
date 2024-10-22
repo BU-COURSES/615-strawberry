@@ -1,0 +1,137 @@
+---
+title: "Missing Values"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+## Missing Values
+
+```{r}
+library(knitr)
+library(tidyverse)
+```
+
+```{r}
+#First let's cast the Value column as numeric values:
+
+straw_cen$Value<-as.numeric(str_replace(straw_cen$Value,",",""))
+```
+
+## Types of Missingness:
+
+### Missing Completely at Random:
+
+A variable is missing completely at random if the probability of missingness is the same for all units.
+
+### Missing at Random:
+
+Probability of missingness depends on data. For strawberry census, an example is to look at the values that are NA and see they depend on state or county.
+
+### Missingness that depends on unobserved predictors
+Information not in data
+
+### Missingness that depends on the missing data:
+E.g we have earnings for some group of people. Over time that change
+
+How do we visualize this? First, note that where County is NA but state is not, we have state-wide figures. E.g:
+
+```{r}
+agg_calif<-straw_cen |> filter(State=="CALIFORNIA") |> filter(is.na(County))
+```
+
+Now, we'll create a dataframe that has all the missing values
+
+```{r}
+missing<-straw_cen |> filter(is.na(Value)) |> select(c(`Geo Level`,State,County,Measure:Value))
+missing |> distinct(`Geo Level`)
+print(missing |> distinct(State),n=60)
+missing |> distinct(County)
+```
+
+Clearly there is a LOT of missingness at the county level. There are 1006 distinct counties in the dataset and 786 of them have missing data.
+
+What about Missingness at a State Level?
+
+```{r}
+state_level<-straw_cen |> filter(`Geo Level` == "STATE")
+dim(state_level |> filter(is.na(Value)))[1]/dim(state_level)[1]
+```
+Not bad. Take a look at the data
+```{r}
+state_level_missingness<-state_level |> filter(is.na(Value))
+state_level_missingness |> distinct(size_bracket)
+```
+
+### Strategies for imputation:
+
+General rule of thumb: If you can fill in the blanks with data that is more granular than your missing value, i.e if you can 'reconstruct' or re-caclulate something, that's always better than imputing downwards.
+
+For example:
+```{r}
+california<-straw_cen |> filter(State=="CALIFORNIA")
+state_level_calif<-state_level |> filter(State=="CALIFORNIA")
+california_acres_bearing<- california |> filter(Measure == "ACRES" & Bearing_type=="BEARING")
+
+
+dim(california |> filter(Measure == "ACRES" & Bearing_type=="BEARING") |> filter(is.na(Value)))[1]/dim(california |> filter(Measure == "ACRES" & Bearing_type=="BEARING"))[1]
+```
+
+
+If that is unavoidable however, which it is likely to be in most of cases, a few methods include:
+
+* Averages
+* Proportional Adjustment
+* Regression
+
+This isn't an exhaustive list by any stretch of the imagination but a good starting point. 
+
+Example with california data:
+Consider acres_bearing:
+
+```{r}
+#We can start by just taking the difference between the total and the data we have and splitting it equally between the two:
+
+acres_bearing_total<-state_level_calif |> filter(Measure=="ACRES" &
+                                                 Bearing_type=="BEARING" &
+                                                 Domain == "TOTAL") |> 
+                                                 select(Value)
+acres_bearing<-state_level_calif |> filter(Measure=="ACRES" &
+                                           Bearing_type=="BEARING" & !is.na(Value)
+                                           & Domain != "TOTAL")
+
+imputed_val<-(acres_bearing_total -sum(acres_bearing$Value))/2
+
+```
+This isn't efficient code at all. Can you write a function that does this?
+
+Note also however, that we can use the Area Grown Column. What information does that give us?
+
+How do we impute from this? Do we just split it in 2 and assign it to bearing and non-bearing. Do we calculate the total across both and split in proportion:
+```{r}
+calif_acres<-state_level |> filter(State=="CALIFORNIA"& Measure=="ACRES")
+bearing_vec<-calif_acres |> filter(Bearing_type=="BEARING") 
+bearing_vec<-bearing_vec$Value
+bearing_indices<-!is.na(bearing_vec)
+grown_vec<-calif_acres |> filter(Bearing_type=="GROWN") 
+grown_vec<-grown_vec[bearing_indices,]$Value
+
+bearing_vec_noNA<-bearing_vec[bearing_indices]
+
+non_bearing_vec<-calif_acres |> filter(Bearing_type=="NON-BEARING")
+
+mean(bearing_vec_noNA/grown_vec)
+
+```
+
+Alternatively, run a Linear Regression:
+```{r}
+
+#Filter out the NA Values
+state_level_noNA<-state_level |> filter(!is.na(Value))
+
+fit1<-lm(Value~State+Measure+Bearing_type+Domain+size_bracket,data=state_level_noNA)
+
+```
+

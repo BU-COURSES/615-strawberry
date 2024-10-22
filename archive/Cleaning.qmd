@@ -1,0 +1,211 @@
+---
+title: "Stawberries Cleaning"
+author: Taha Ababou
+date: 2024 Oct 21
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+# Data Cleaning and Organization
+
+This project explores strawberry data acquired from the USDA-NASS system. The primary goal is to clean, organize, and analyze the data to answer several questions related to strawberry cultivation, health effects, and economics. The dataset is available in the file `strawberries25_v3.csv`, stored on the MA615 Blackboard.
+
+## Data Source
+
+The dataset for this project was acquired from the USDA NASS system and stored in the file `strawberries25_v3.csv`. It contains 5,359 rows and 21 columns, spanning the years 2018 to 2024.
+
+## References for Data Cleaning
+
+-   "An Introduction to Data Cleaning with R" by Edwin de Jonge and Mark van der Loo
+
+-   "Problems, Methods, and Challenges in Comprehensive Data Cleansing" by Heiko Müller and Johann-Christoph Freytag
+
+## Initial Data Inspection
+
+```{r setup, include=FALSE}
+# Load libraries
+library(tidyverse)
+library(knitr)  
+library(kableExtra)
+
+# Load the data
+strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE, show_col_types = FALSE)
+#glimpse(strawberry)
+
+```
+
+The data was originally collected at the county, state, and national levels, but the degree of missingness at the state level was too high, so I dropped the county-level data.
+
+```{r}
+#| label: ditch the counties
+
+unique(strawberry$`Geo Level`)
+
+strawberry <- strawberry |> 
+  filter(`Geo Level`== "NATIONAL" | `Geo Level`== "STATE")
+
+unique(strawberry$`Geo Level`)
+  
+```
+
+## Removing Single-Value Columns
+
+We now define a function to drop columns with a single unique value across all rows, as they don't add useful information to the analysis.
+
+```{r}
+#|label: function def - drop 1-item columns
+
+drop_one_value_col <- function(df){ 
+ # browser()
+  df_id <- ensym(df)
+  msg = paste("Looking for single value columns in data frame: ",as.character(df_id) )
+  print(msg)
+  ## takes whole dataframe
+dropc <- NULL
+val <- NULL
+## test each column for a single value
+for(i in 1:dim(df)[2]){   
+  if(dim(distinct(df[,i]))[1] == 1){
+    dropc <- c(dropc, i)
+    val <- c(val, df[1,i])
+  }
+} 
+
+if(is.null(dropc)){
+  print("No columns dropped")
+  return(df)}else{
+   print("Columns dropped:")
+   # print(colnames(df)[drop])
+   print(unlist(val))
+   df <- df[, -1*dropc]
+   return(df)
+   }
+}
+
+
+## use the function
+strawberry <- strawberry |> drop_one_value_col()
+
+```
+
+## Splitting Census and Survey Data
+
+The dataset contains both 'census' and 'survey' data, which we will separate into two separate data frames for further cleaning.
+
+```{r}
+# Split the data into census and survey subsets
+straw_cen <- strawberry |> filter(Program == "CENSUS")
+straw_sur <- strawberry |> filter(Program == "SURVEY")
+```
+
+Applying the `drop_one_value_col` function to each half of the dataset.
+
+```{r}
+straw_cen <- straw_cen |> drop_one_value_col()
+straw_sur <- straw_sur |> drop_one_value_col()
+```
+
+## Census Data Cleaning and Processing
+
+### Isolating Organic Strawberries Data
+
+Organic data is isolated by separating the `Data Item` column.
+
+```{r}
+#| label: straw_cen split cols
+#| echo: false
+
+straw_cen <- straw_cen |>
+  separate_wider_delim(  cols = `Data Item`,
+                         delim = " - ",
+                         names = c("strawberries",
+                                 "Category"),
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+```
+
+```{r}
+#| label: isolate organic
+#| echo: false
+
+straw_cen <- straw_cen |>
+  separate_wider_delim(  cols = strawberries,
+                         delim = ", ",
+                         names = c("strawberries",
+                                 "ORGANIC",
+                                 "organic_detail"),
+                         
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+
+straw_cen <- straw_cen |> drop_one_value_col()
+
+## how many organic rows?
+organic_cen <- straw_cen |> filter(ORGANIC == "ORGANIC")
+
+straw_cen <- straw_cen[(is.na(straw_cen$ORGANIC)),]
+
+straw_cen <- straw_cen |> drop_one_value_col()
+```
+
+Note that straw_cen has only one year: 2022
+
+Current stats Census date has been isolated and split between Organic and Conventional strawberries
+
+```{r}
+#| label: explore straw_cen$Category
+#| echo: false
+
+straw_cen <- straw_cen |>
+  separate_wider_delim(  cols = `Category`,
+                         delim = " ",
+                         names = c("COL1",
+                                 "COL2"),
+                         too_many = "merge",
+                         too_few = "align_start"
+                       )
+
+
+
+straw_cen$COL2 <- str_replace(straw_cen$COL2, "WITH ", "")
+
+straw_cen <- straw_cen |> rename(Measure = COL1, Bearing_type= COL2)
+
+```
+
+```{r}
+#| label: explore straw_cen$Domain & Domain Category
+#| echo: false
+
+
+## remove AREA GROWN and parens 
+## change NOT SPECIFIEC TO TOTAL
+
+straw_cen <- straw_cen |> rename(size_bracket = `Domain Category`)
+
+straw_cen$size_bracket <- str_replace(straw_cen$size_bracket, "NOT SPECIFIED", "TOTAL")
+
+straw_cen$size_bracket <- str_replace(straw_cen$size_bracket, "AREA GROWN: ", "")
+
+```
+
+```{r}
+#| label: explore organic_cen
+#| echo: false
+
+organic_cen <- organic_cen |> drop_one_value_col()
+```
+
+### 
+
+### Handling Missing Values
+
+We handle missing values in the `Value` column by performing interpolation based on state and type (bearing or non-bearing).
+
+```{r}
+
+```
